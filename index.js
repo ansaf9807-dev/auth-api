@@ -4,25 +4,21 @@ const cors = require("cors");
 
 const app = express();
 
-// ================= MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
 
-// ================= SAFETY LOG =================
-console.log("BOOT STARTING...");
+console.log("BOOT START");
 
-// ================= MONGODB =================
+// ================= SAFE MONGO CONNECTION =================
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  console.log("WARNING: MONGO_URI is NOT set in environment variables");
+  console.log("⚠️ MONGO_URI NOT SET - running without DB (test mode)");
+} else {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log("MongoDB Connected"))
+    .catch(err => console.log("MongoDB Error:", err.message));
 }
-
-mongoose.connect(MONGO_URI || "")
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => {
-    console.log("MongoDB Connection Error:", err.message);
-  });
 
 // ================= SCHEMA =================
 const KeySchema = new mongoose.Schema({
@@ -40,7 +36,7 @@ app.get("/", (req, res) => {
   res.send("License Server Running");
 });
 
-// ================= VALIDATION API =================
+// ================= VALIDATE API =================
 app.post("/api/keys/validate", async (req, res) => {
   try {
     const { key, device_id } = req.body;
@@ -69,7 +65,7 @@ app.post("/api/keys/validate", async (req, res) => {
       return res.json({ valid: false, error: "Device limit reached" });
     }
 
-    // bind device if new
+    // bind device
     if (device_id && !doc.device_ids.includes(device_id)) {
       doc.device_ids.push(device_id);
       await doc.save();
@@ -82,14 +78,13 @@ app.post("/api/keys/validate", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("API Error:", err.message);
+    console.log("API ERROR:", err.message);
     return res.json({ valid: false, error: "Server error" });
   }
 });
 
-// ================= PORT FIX (IMPORTANT FOR RAILWAY) =================
+// ================= START =================
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
