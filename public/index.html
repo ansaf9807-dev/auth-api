@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>Login</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body class="center">
@@ -30,9 +30,10 @@ async function login() {
   const data = await res.json();
 
   if (data.success) {
-    window.location.href = "/dashboard";
+    // ✅ FIX: go to actual file
+    window.location.href = "/dashboard.html";
   } else {
-    alert("Invalid login");
+    alert("Wrong login");
   }
 }
 </script>
