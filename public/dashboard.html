@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body class="container">
+
+<h2>License Dashboard</h2>
+
+<div class="card">
+  <h3>Create Key</h3>
+
+  <input id="key" placeholder="Key">
+  <input id="expiry" placeholder="Expiry (YYYY-MM-DD)">
+  <input id="limit" placeholder="Device Limit">
+
+  <button onclick="create()">Create Key</button>
+</div>
+
+<div class="card">
+  <h3>All Keys</h3>
+  <button onclick="load()">Refresh</button>
+  <pre id="out"></pre>
+</div>
+
+<script>
+async function create() {
+  await fetch("/api/admin/create-key", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      key: document.getElementById("key").value,
+      expiry_date: document.getElementById("expiry").value,
+      device_limit: Number(document.getElementById("limit").value)
+    })
+  });
+
+  alert("Key created");
+}
+
+async function load() {
+  const res = await fetch("/api/admin/keys");
+  const data = await res.json();
+
+  document.getElementById("out").innerText =
+    JSON.stringify(data, null, 2);
+}
+
+load();
+</script>
+
+</body>
+</html>
