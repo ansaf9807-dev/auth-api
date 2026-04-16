@@ -1,23 +1,25 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
 
 console.log("BOOT START");
 
-// ================= SAFE MONGO CONNECTION =================
+// ================= DATABASE =================
 const MONGO_URI = process.env.MONGO_URI;
 
-if (!MONGO_URI) {
-  console.log("⚠️ MONGO_URI NOT SET - running without DB (test mode)");
-} else {
+if (MONGO_URI) {
   mongoose.connect(MONGO_URI)
     .then(() => console.log("MongoDB Connected"))
     .catch(err => console.log("MongoDB Error:", err.message));
+} else {
+  console.log("⚠️ MONGO_URI not set (running without DB)");
 }
 
 // ================= SCHEMA =================
@@ -31,12 +33,56 @@ const KeySchema = new mongoose.Schema({
 
 const Key = mongoose.model("Key", KeySchema);
 
-// ================= HEALTH CHECK =================
+// ================= ROUTES =================
+
+// Home -> login
 app.get("/", (req, res) => {
-  res.send("License Server Running");
+  res.sendFile(path.join(__dirname, "public/login.html"));
 });
 
-// ================= VALIDATE API =================
+// Dashboard
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/dashboard.html"));
+});
+
+// ================= ADMIN LOGIN =================
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body;
+
+  if (username === "admin" && password === "1234") {
+    return res.json({ success: true });
+  }
+
+  return res.json({ success: false, error: "Invalid login" });
+});
+
+// ================= CREATE KEY =================
+app.post("/api/admin/create-key", async (req, res) => {
+  try {
+    const { key, expiry_date, device_limit } = req.body;
+
+    const newKey = new Key({
+      key,
+      expiry_date,
+      device_limit,
+      device_ids: []
+    });
+
+    await newKey.save();
+
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false });
+  }
+});
+
+// ================= LIST KEYS =================
+app.get("/api/admin/keys", async (req, res) => {
+  const keys = await Key.find();
+  res.json(keys);
+});
+
+// ================= VALIDATE KEY (C++ / APP) =================
 app.post("/api/keys/validate", async (req, res) => {
   try {
     const { key, device_id } = req.body;
@@ -55,17 +101,14 @@ app.post("/api/keys/validate", async (req, res) => {
       return res.json({ valid: false, error: "Key inactive" });
     }
 
-    // expiry check
     if (doc.expiry_date && new Date(doc.expiry_date) < new Date()) {
       return res.json({ valid: false, error: "Key expired" });
     }
 
-    // device limit check
     if (doc.device_ids.length >= doc.device_limit) {
       return res.json({ valid: false, error: "Device limit reached" });
     }
 
-    // bind device
     if (device_id && !doc.device_ids.includes(device_id)) {
       doc.device_ids.push(device_id);
       await doc.save();
@@ -77,14 +120,14 @@ app.post("/api/keys/validate", async (req, res) => {
       label: "premium"
     });
 
-  } catch (err) {
-    console.log("API ERROR:", err.message);
+  } catch (e) {
     return res.json({ valid: false, error: "Server error" });
   }
 });
 
 // ================= START =================
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
