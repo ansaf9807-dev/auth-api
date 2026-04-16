@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
@@ -32,12 +33,10 @@ app.post("/api/keys/validate", async (req, res) => {
   if (!k) return res.json({ valid: false, error: "Invalid key" });
   if (!k.active) return res.json({ valid: false, error: "Key disabled" });
 
-  // Expiry check
   if (k.expiry_date && new Date() > k.expiry_date) {
     return res.json({ valid: false, error: "Key expired" });
   }
 
-  // Device limit
   if (!k.device_ids.includes(device_id)) {
     if (k.device_ids.length >= k.device_limit) {
       return res.json({ valid: false, error: "Device limit reached" });
@@ -54,7 +53,7 @@ app.post("/api/keys/validate", async (req, res) => {
   });
 });
 
-// ================= CREATE KEY =================
+// ================= CREATE =================
 app.post("/api/admin/create", async (req, res) => {
   const { days, device_limit } = req.body;
 
@@ -75,22 +74,21 @@ app.post("/api/admin/create", async (req, res) => {
   res.json({ key: newKey });
 });
 
-// ================= GET ALL KEYS =================
+// ================= GET KEYS =================
 app.get("/api/admin/keys", async (req, res) => {
   const keys = await Key.find().sort({ created_at: -1 });
   res.json(keys);
 });
 
-// ================= DELETE KEY =================
+// ================= DELETE =================
 app.delete("/api/admin/delete/:key", async (req, res) => {
   await Key.deleteOne({ key: req.params.key });
   res.json({ success: true });
 });
 
-// ================= TOGGLE ENABLE/DISABLE =================
+// ================= TOGGLE =================
 app.post("/api/admin/toggle", async (req, res) => {
   const { key } = req.body;
-
   const k = await Key.findOne({ key });
   if (!k) return res.json({ error: "Not found" });
 
@@ -100,9 +98,11 @@ app.post("/api/admin/toggle", async (req, res) => {
   res.json({ active: k.active });
 });
 
-// ================= HOME =================
+// ================= PANEL HOST =================
+app.use(express.static("public"));
+
 app.get("/", (req, res) => {
-  res.send("License API Running");
+  res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
 // ================= START =================
