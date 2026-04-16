@@ -1,32 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>License Test Panel</title>
+  <title>Login</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
-<body style="font-family: Arial; padding: 20px;">
 
-<h2>License Server Test</h2>
+<body class="center">
 
-<input id="key" placeholder="Enter Key">
-<input id="device" placeholder="Device ID">
-<button onclick="test()">Validate</button>
+<div class="box">
+  <h2>Admin Login</h2>
 
-<pre id="out"></pre>
+  <input id="u" placeholder="Username">
+  <input id="p" type="password" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+</div>
 
 <script>
-async function test() {
-  const key = document.getElementById("key").value;
-  const device_id = document.getElementById("device").value;
-
-  const res = await fetch("/api/keys/validate", {
+async function login() {
+  const res = await fetch("/api/admin/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, device_id })
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      username: document.getElementById("u").value,
+      password: document.getElementById("p").value
+    })
   });
 
   const data = await res.json();
-  document.getElementById("out").innerText =
-    JSON.stringify(data, null, 2);
+
+  if (data.success) {
+    window.location.href = "/dashboard";
+  } else {
+    alert("Invalid login");
+  }
 }
 </script>
 
