@@ -1,108 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Key Panel</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: Arial;
-      padding: 20px;
-    }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-    }
-    button {
-      background: #00ff99;
-      cursor: pointer;
-    }
-    li {
-      margin: 8px 0;
-    }
-  </style>
+  <title>License Panel</title>
 </head>
-<body>
+<body style="font-family: Arial; padding: 20px;">
 
-<h2>🔑 Create Key</h2>
-<input id="days" placeholder="Days (0 = lifetime)">
-<input id="limit" placeholder="Device Limit">
-<button onclick="createKey()">Create</button>
+  <h2>Key Validation Test</h2>
 
-<h2>📋 Keys</h2>
-<button onclick="loadKeys()">Refresh</button>
-<ul id="list"></ul>
+  <input id="key" placeholder="Enter Key" />
+  <input id="device" placeholder="Device ID" />
+  <button onclick="validate()">Validate</button>
 
-<script>
-const API = "https://auth-api-production-37a5.up.railway.app";
+  <pre id="result"></pre>
 
-// CREATE KEY
-async function createKey() {
-  const days = Number(document.getElementById("days").value);
-  const limit = Number(document.getElementById("limit").value);
+  <script>
+    async function validate() {
+      const key = document.getElementById("key").value;
+      const device_id = document.getElementById("device").value;
 
-  const res = await fetch(API + "/api/admin/create", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      days: days,
-      device_limit: limit
-    })
-  });
+      const res = await fetch("/api/keys/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, device_id })
+      });
 
-  const data = await res.json();
-  alert("New Key: " + data.key);
-  loadKeys();
-}
-
-// LOAD KEYS
-async function loadKeys() {
-  const res = await fetch(API + "/api/admin/keys");
-  const data = await res.json();
-
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  data.forEach(k => {
-    const expiry = k.expiry_date 
-      ? new Date(k.expiry_date).toLocaleDateString()
-      : "Lifetime";
-
-    const li = document.createElement("li");
-    li.innerHTML = `
-      🔑 ${k.key} | 📱 ${k.device_ids.length}/${k.device_limit} | ⏳ ${expiry} | ${k.active ? "🟢 Active" : "🔴 Disabled"}
-      <br>
-      <button onclick="deleteKey('${k.key}')">Delete</button>
-      <button onclick="toggleKey('${k.key}')">${k.active ? "Disable" : "Enable"}</button>
-    `;
-
-    list.appendChild(li);
-  });
-}
-
-// DELETE KEY
-async function deleteKey(key) {
-  await fetch(API + "/api/admin/delete/" + key, {
-    method: "DELETE"
-  });
-  loadKeys();
-}
-
-// TOGGLE KEY
-async function toggleKey(key) {
-  await fetch(API + "/api/admin/toggle", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ key })
-  });
-  loadKeys();
-}
-
-// AUTO LOAD
-loadKeys();
-</script>
+      const data = await res.json();
+      document.getElementById("result").innerText =
+        JSON.stringify(data, null, 2);
+    }
+  </script>
 
 </body>
 </html>
