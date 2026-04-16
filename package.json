@@ -1,7 +1,6 @@
 {
   "name": "license-server",
   "version": "1.0.0",
-  "description": "Key authentication API",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
