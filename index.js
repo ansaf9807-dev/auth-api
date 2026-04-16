@@ -4,26 +4,43 @@ const cors = require("cors");
 
 const app = express();
 
+// ================= MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
 
-// ================= DATABASE =================
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
+// ================= SAFETY LOG =================
+console.log("BOOT STARTING...");
 
-// ================= MODEL =================
+// ================= MONGODB =================
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  console.log("WARNING: MONGO_URI is NOT set in environment variables");
+}
+
+mongoose.connect(MONGO_URI || "")
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => {
+    console.log("MongoDB Connection Error:", err.message);
+  });
+
+// ================= SCHEMA =================
 const KeySchema = new mongoose.Schema({
   key: String,
   active: { type: Boolean, default: true },
   expiry_date: String,
-  device_limit: Number,
-  device_ids: [String]
+  device_limit: { type: Number, default: 1 },
+  device_ids: { type: [String], default: [] }
 });
 
 const Key = mongoose.model("Key", KeySchema);
 
-// ================= VALIDATE API =================
+// ================= HEALTH CHECK =================
+app.get("/", (req, res) => {
+  res.send("License Server Running");
+});
+
+// ================= VALIDATION API =================
 app.post("/api/keys/validate", async (req, res) => {
   try {
     const { key, device_id } = req.body;
@@ -52,7 +69,7 @@ app.post("/api/keys/validate", async (req, res) => {
       return res.json({ valid: false, error: "Device limit reached" });
     }
 
-    // bind device
+    // bind device if new
     if (device_id && !doc.device_ids.includes(device_id)) {
       doc.device_ids.push(device_id);
       await doc.save();
@@ -64,13 +81,15 @@ app.post("/api/keys/validate", async (req, res) => {
       label: "premium"
     });
 
-  } catch (e) {
+  } catch (err) {
+    console.log("API Error:", err.message);
     return res.json({ valid: false, error: "Server error" });
   }
 });
 
-// ================= START SERVER =================
+// ================= PORT FIX (IMPORTANT FOR RAILWAY) =================
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
