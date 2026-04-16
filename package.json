@@ -1,13 +1,49 @@
 {
-  "name": "license-server",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
+  "api_name": "License Server",
+  "version": "1.0",
+
+  "success_response": {
+    "valid": true,
+    "exp_time": "2026-04-17T16:00:35.635Z",
+    "label": "premium"
   },
-  "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.0",
-    "cors": "^2.8.5"
-  }
+
+  "error_responses": {
+    "invalid_key": {
+      "valid": false,
+      "error": "Invalid key"
+    },
+    "inactive_key": {
+      "valid": false,
+      "error": "Key inactive"
+    },
+    "expired_key": {
+      "valid": false,
+      "error": "Key expired"
+    },
+    "device_limit_reached": {
+      "valid": false,
+      "error": "Device limit reached"
+    },
+    "server_error": {
+      "valid": false,
+      "error": "Server error"
+    }
+  },
+
+  "database_fields_used": {
+    "key": "string",
+    "active": "boolean",
+    "expiry_date": "ISO date string or null",
+    "device_limit": "number",
+    "device_ids": "array of strings"
+  },
+
+  "rules": [
+    "Backend must NEVER return raw MongoDB document",
+    "Only return valid, exp_time, label OR error",
+    "Client must not perform security decisions alone",
+    "Device binding must be handled server-side",
+    "Expiry must be checked server-side"
+  ]
 }
