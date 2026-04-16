@@ -1,63 +1,59 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const rateLimit = require("express-rate-limit");
 
 const app = express();
 app.use(express.json());
 
-// Rate limiter
-app.use("/api/", rateLimit({
-  windowMs: 60 * 1000,
-  max: 30
-}));
-
-// MongoDB connection
+// Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
+.then(() => console.log("MongoDB connected"))
+.catch(err => console.log(err));
 
 // Schema
-const KeySchema = new mongoose.Schema({
-  key_hash: String,
-  expires_at: Date,
+const Key = mongoose.model("Key", {
+  key: String,
   device_id: String,
+  exp_time: String,
   active: { type: Boolean, default: true }
 });
 
-const Key = mongoose.model("Key", KeySchema);
-
-// Validate API
-app.post("/api/validate", async (req, res) => {
+// Validate API (IMPORTANT)
+app.post("/api/keys/validate", async (req, res) => {
   const { key, device_id } = req.body;
 
-  const keys = await Key.find({ active: true });
+  const found = await Key.findOne({ key });
 
-  for (let k of keys) {
-    if (await bcrypt.compare(key, k.key_hash)) {
-
-      if (k.expires_at && k.expires_at < new Date())
-        return res.json({ status: "expired" });
-
-      if (k.device_id && k.device_id !== device_id)
-        return res.json({ status: "device_mismatch" });
-
-      if (!k.device_id)
-        k.device_id = device_id;
-
-      await k.save();
-
-      return res.json({ status: "valid" });
-    }
+  if (!found) {
+    return res.json({ valid: false, error: "Invalid key" });
   }
 
-  res.json({ status: "invalid" });
+  if (!found.active) {
+    return res.json({ valid: false, error: "Key disabled" });
+  }
+
+  if (!found.device_id) {
+    found.device_id = device_id;
+    await found.save();
+  } else if (found.device_id !== device_id) {
+    return res.json({ valid: false, error: "Device mismatch" });
+  }
+
+  return res.json({
+    valid: true,
+    exp_time: found.exp_time || "Lifetime"
+  });
 });
 
-// Simple route
-app.get("/", (req, res) => {
-  res.send("Auth API Running");
+// Create key (for testing)
+app.get("/create-key", async (req, res) => {
+  const newKey = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+  await Key.create({
+    key: newKey,
+    exp_time: "Lifetime"
+  });
+
+  res.send("Key: " + newKey);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(process.env.PORT || 3000);
