@@ -2,28 +2,24 @@
 <html>
 <head>
   <title>Dashboard</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="container">
+<body>
 
-<h2>License Dashboard</h2>
+<h2>Dashboard</h2>
 
-<div class="card">
-  <h3>Create Key</h3>
+<input id="key" placeholder="Key">
+<input id="expiry" placeholder="Expiry">
+<input id="limit" placeholder="Device limit">
 
-  <input id="key" placeholder="Key">
-  <input id="expiry" placeholder="Expiry (YYYY-MM-DD)">
-  <input id="limit" placeholder="Device Limit">
+<button onclick="create()">Create</button>
 
-  <button onclick="create()">Create Key</button>
-</div>
+<hr>
 
-<div class="card">
-  <h3>All Keys</h3>
-  <button onclick="load()">Refresh</button>
-  <pre id="out"></pre>
-</div>
+<button onclick="load()">Load Keys</button>
+
+<pre id="out"></pre>
 
 <script>
 async function create() {
@@ -37,13 +33,12 @@ async function create() {
     })
   });
 
-  alert("Key created");
+  alert("Created");
 }
 
 async function load() {
   const res = await fetch("/api/admin/keys");
   const data = await res.json();
-
   document.getElementById("out").innerText =
     JSON.stringify(data, null, 2);
 }
