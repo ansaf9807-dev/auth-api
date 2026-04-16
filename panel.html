@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Key Panel</title>
+  <style>
+    body { background:#111; color:white; font-family:Arial; padding:20px; }
+    input,button { padding:10px; margin:5px; border-radius:5px; border:none; }
+    button { background:#00ff99; }
+  </style>
+</head>
+<body>
+
+<h2>Create Key</h2>
+<input id="days" placeholder="Days (0 = lifetime)">
+<input id="limit" placeholder="Device Limit">
+<button onclick="createKey()">Create</button>
+
+<h2>Keys</h2>
+<button onclick="loadKeys()">Refresh</button>
+<ul id="list"></ul>
+
+<script>
+async function createKey(){
+  const res = await fetch("/api/admin/create", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      days:Number(days.value),
+      device_limit:Number(limit.value)
+    })
+  });
+  const data = await res.json();
+  alert("Key: " + data.key);
+  loadKeys();
+}
+
+async function loadKeys(){
+  const res = await fetch("/api/admin/keys");
+  const data = await res.json();
+
+  list.innerHTML="";
+  data.forEach(k=>{
+    const li=document.createElement("li");
+    li.innerHTML = `
+      ${k.key} | Devices: ${k.device_ids.length}/${k.device_limit}
+      <button onclick="del('${k.key}')">Delete</button>
+      <button onclick="toggle('${k.key}')">${k.active ? "Disable" : "Enable"}</button>
+    `;
+    list.appendChild(li);
+  });
+}
+
+async function del(key){
+  await fetch("/api/admin/delete/"+key,{method:"DELETE"});
+  loadKeys();
+}
+
+async function toggle(key){
+  await fetch("/api/admin/toggle",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({key})
+  });
+  loadKeys();
+}
+
+loadKeys();
+</script>
+
+</body>
+</html>
