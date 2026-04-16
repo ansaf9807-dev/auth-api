@@ -1,8 +1,7 @@
 body {
-  margin: 0;
-  font-family: Arial;
-  background: #0f172a;
+  background: #111;
   color: white;
+  font-family: Arial;
 }
 
 .center {
@@ -13,51 +12,18 @@ body {
 }
 
 .box {
-  background: #1e293b;
-  padding: 25px;
+  background: #222;
+  padding: 20px;
   border-radius: 10px;
-  width: 300px;
-  text-align: center;
 }
 
 input {
-  width: 90%;
-  padding: 10px;
+  display: block;
   margin: 5px;
-  border-radius: 6px;
-  border: none;
-  background: #334155;
-  color: white;
+  padding: 8px;
 }
 
 button {
-  width: 95%;
-  padding: 10px;
+  padding: 8px;
   margin-top: 10px;
-  background: #38bdf8;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #0ea5e9;
-}
-
-.container {
-  padding: 20px;
-}
-
-.card {
-  background: #1e293b;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 10px;
-}
-
-pre {
-  background: #0b1220;
-  padding: 10px;
-  border-radius: 8px;
-  overflow-x: auto;
 }
