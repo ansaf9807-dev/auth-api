@@ -1,34 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>License Panel</title>
+  <title>License Test Panel</title>
 </head>
 <body style="font-family: Arial; padding: 20px;">
 
-  <h2>Key Validation Test</h2>
+<h2>License Server Test</h2>
 
-  <input id="key" placeholder="Enter Key" />
-  <input id="device" placeholder="Device ID" />
-  <button onclick="validate()">Validate</button>
+<input id="key" placeholder="Enter Key">
+<input id="device" placeholder="Device ID">
+<button onclick="test()">Validate</button>
 
-  <pre id="result"></pre>
+<pre id="out"></pre>
 
-  <script>
-    async function validate() {
-      const key = document.getElementById("key").value;
-      const device_id = document.getElementById("device").value;
+<script>
+async function test() {
+  const key = document.getElementById("key").value;
+  const device_id = document.getElementById("device").value;
 
-      const res = await fetch("/api/keys/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, device_id })
-      });
+  const res = await fetch("/api/keys/validate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, device_id })
+  });
 
-      const data = await res.json();
-      document.getElementById("result").innerText =
-        JSON.stringify(data, null, 2);
-    }
-  </script>
+  const data = await res.json();
+  document.getElementById("out").innerText =
+    JSON.stringify(data, null, 2);
+}
+</script>
 
 </body>
 </html>
