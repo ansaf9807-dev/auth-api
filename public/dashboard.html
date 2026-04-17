@@ -1,49 +1,125 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Key Panel</title>
 </head>
-
 <body>
 
-<h2>Dashboard</h2>
+<h2>Create Key</h2>
 
-<input id="key" placeholder="Key">
-<input id="expiry" placeholder="Expiry">
+<input id="key" placeholder="Leave empty for random">
+<input id="expiry" placeholder="Expiry (optional)">
 <input id="limit" placeholder="Device limit">
 
-<button onclick="create()">Create</button>
+<button onclick="createKey()">Create</button>
+<button onclick="generateRandom()">Random</button>
 
-<hr>
+<h2>Keys</h2>
 
-<button onclick="load()">Load Keys</button>
-
-<pre id="out"></pre>
+<table border="1">
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Expiry</th>
+      <th>Limit</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="keysTable"></tbody>
+</table>
 
 <script>
-async function create() {
-  await fetch("/api/admin/create-key", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      key: document.getElementById("key").value,
-      expiry_date: document.getElementById("expiry").value,
-      device_limit: Number(document.getElementById("limit").value)
-    })
-  });
 
-  alert("Created");
+// RANDOM
+function generateRandom() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let k = "";
+  for (let i = 0; i < 8; i++) {
+    k += chars[Math.floor(Math.random() * chars.length)];
+  }
+  document.getElementById("key").value = k;
 }
 
-async function load() {
+// LOAD
+async function loadKeys() {
   const res = await fetch("/api/admin/keys");
   const data = await res.json();
-  document.getElementById("out").innerText =
-    JSON.stringify(data, null, 2);
+
+  const table = document.getElementById("keysTable");
+  table.innerHTML = "";
+
+  data.forEach(k => {
+    table.innerHTML += `
+      <tr>
+        <td>${k.key}</td>
+        <td>${k.expiry_date || "Lifetime"}</td>
+        <td>${k.device_limit}</td>
+        <td>${k.active ? "Active" : "Inactive"}</td>
+        <td>
+          <button onclick="copyKey('${k.key}')">Copy</button>
+          <button onclick="editKey('${k._id}', '${k.key}', '${k.expiry_date}', ${k.device_limit}, ${k.active})">Edit</button>
+          <button onclick="deleteKey('${k._id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
 }
 
-load();
+// CREATE
+async function createKey() {
+  const key = document.getElementById("key").value;
+  const expiry = document.getElementById("expiry").value;
+  const limit = document.getElementById("limit").value;
+
+  const res = await fetch("/api/admin/create-key", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ key, expiry_date: expiry, device_limit: limit })
+  });
+
+  const data = await res.json();
+  if (data.key) alert("Created: " + data.key);
+
+  loadKeys();
+}
+
+// COPY
+function copyKey(key) {
+  navigator.clipboard.writeText(key);
+  alert("Copied: " + key);
+}
+
+// DELETE
+async function deleteKey(id) {
+  if (!confirm("Delete?")) return;
+  await fetch("/api/admin/delete-key/" + id, { method: "DELETE" });
+  loadKeys();
+}
+
+// EDIT
+function editKey(id, key, expiry, limit, active) {
+  const newKey = prompt("Key:", key);
+  if (!newKey) return;
+
+  const newExpiry = prompt("Expiry:", expiry || "");
+  const newLimit = prompt("Limit:", limit);
+  const newActive = confirm("OK = Active");
+
+  fetch("/api/admin/edit-key/" + id, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      key: newKey,
+      expiry_date: newExpiry,
+      device_limit: newLimit,
+      active: newActive
+    })
+  }).then(loadKeys);
+}
+
+loadKeys();
+
 </script>
 
 </body>
