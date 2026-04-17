@@ -7,7 +7,15 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// 🔥 IMPORTANT: serve your existing pages
 app.use(express.static(path.join(__dirname, "public")));
+
+// ================= ROOT FIX =================
+// THIS FIXES "Cannot GET /"
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // ================= DATABASE =================
 mongoose.connect(process.env.MONGO_URI)
@@ -25,29 +33,34 @@ const KeySchema = new mongoose.Schema({
 
 const Key = mongoose.model("Key", KeySchema);
 
-// ================= RANDOM KEY =================
-function generateKey(len = 8) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let out = "";
-  for (let i = 0; i < len; i++) {
-    out += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return out;
-}
+// ================= KEEP YOUR OLD ADMIN LOGIN =================
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body;
 
-// ================= CREATE KEY =================
+  if (username === "admin" && password === "1234") {
+    return res.json({ success: true });
+  }
+
+  res.json({ success: false });
+});
+
+// ================= CREATE =================
 app.post("/api/admin/create-key", async (req, res) => {
   try {
     let { key, expiry_date, device_limit } = req.body;
 
-    if (!key) key = generateKey();
-    device_limit = Number(device_limit) || 1;
+    if (!key) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      key = "";
+      for (let i = 0; i < 8; i++) {
+        key += chars[Math.floor(Math.random() * chars.length)];
+      }
+    }
 
     await Key.create({
       key,
       expiry_date,
-      device_limit,
-      device_ids: []
+      device_limit: Number(device_limit) || 1
     });
 
     res.json({ success: true, key });
@@ -56,7 +69,7 @@ app.post("/api/admin/create-key", async (req, res) => {
   }
 });
 
-// ================= GET KEYS =================
+// ================= GET =================
 app.get("/api/admin/keys", async (req, res) => {
   const keys = await Key.find();
   res.json(keys);
@@ -82,7 +95,7 @@ app.put("/api/admin/edit-key/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-// ================= VALIDATE (CRITICAL FIX) =================
+// ================= 🔥 VALIDATION (DO NOT CHANGE FORMAT) =================
 app.post("/api/keys/validate", async (req, res) => {
   try {
     const { key, device_id } = req.body || {};
@@ -93,13 +106,8 @@ app.post("/api/keys/validate", async (req, res) => {
 
     const doc = await Key.findOne({ key });
 
-    if (!doc) {
-      return res.json({ valid: false, error: "Key not found" });
-    }
-
-    if (!doc.active) {
-      return res.json({ valid: false, error: "Inactive key" });
-    }
+    if (!doc) return res.json({ valid: false, error: "Key not found" });
+    if (!doc.active) return res.json({ valid: false, error: "Inactive key" });
 
     if (doc.expiry_date && new Date(doc.expiry_date) < new Date()) {
       return res.json({ valid: false, error: "Expired key" });
@@ -114,7 +122,7 @@ app.post("/api/keys/validate", async (req, res) => {
       await doc.save();
     }
 
-    // 🔥 IMPORTANT: EXACT FORMAT YOUR C++ NEEDS
+    // ✅ EXACT FORMAT YOUR keylogin.h NEEDS
     return res.json({
       valid: true,
       exp_time: doc.expiry_date || "Lifetime"
